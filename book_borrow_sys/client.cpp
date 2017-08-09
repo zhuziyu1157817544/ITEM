@@ -396,7 +396,7 @@ void Personal_data(TCPClient client)
     getchar(); 
     menu(client);
 }
-bool add_books_info(TCPClient &client)
+bool add_books_info(TCPClient &client)//上架书籍
 {
     bool non_stop = true;
     string yes_or_no;
@@ -445,8 +445,6 @@ bool add_books_info(TCPClient &client)
              cout << "接收数据失败"<<endl;
              return false;
         }else{
-            //cout << "所接受的数据是:";
-            //cout << client.data_buffer << endl;
             NetPacketHeader *phead = (NetPacketHeader*)client.data_buffer;
             if(phead -> wOpcode == ADD_BOOKS_INFO_YES){
                 cout << "书籍添加成功" << endl;
@@ -460,7 +458,7 @@ bool add_books_info(TCPClient &client)
     return true;
 }
 
-void del_isbn(TCPClient &client)
+void del_isbn(TCPClient &client) //按isbn下架书籍
 {
     
     bool non_stop = true;
@@ -513,7 +511,7 @@ void del_isbn(TCPClient &client)
     }
     
 }
-void del_book_name(TCPClient &client)
+void del_book_name(TCPClient &client)//按书名下架函数
 {
     bool non_stop = true;
     string temp_name1;
@@ -566,7 +564,7 @@ void del_book_name(TCPClient &client)
     }
 
 }
-bool del_books_info(TCPClient &client){
+bool del_books_info(TCPClient &client){ //下架相关书籍函数1
     bool non_stop = true;
     string yes_or_no;
     Json::Value book;
@@ -597,11 +595,437 @@ bool del_books_info(TCPClient &client){
         }
     }
 }
+void  fill_in_json(Json::Value &book) //填book信息
+{
+    string nu("");
+    book["publish_house"] =nu.c_str();
+    book["author"] = nu.c_str();
+    book["count"] = nu.c_str();
+    book["stat"] = nu.c_str();
+}
 
-bool chan_books_info(TCPClient &client){}
-bool sea_books_info(TCPClient &client){}
+void print(Json::Value &book_recv) //打印信息
+{
+    cout << "当前图书信息是:"<<endl;
+        cout << "ISBN:"<<book_recv["ISBN"].asString()<<endl;
+        cout << "书籍名称:"<<book_recv["book_name"].asString()<<endl;
+        cout << "出版社:"<< book_recv["publish_house"].asString()<<endl;
+        cout << "库存数量:"<<book_recv["count"].asString()<<endl;
+        cout << "是否可借阅:"<<book_recv["stat"].asString()<<endl;
+}
+bool chan_publish(TCPClient&client,Json::Value &book) //改变书籍出版社
+{
+    fill_in_json(book);
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),SEA_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return false;
+    }
+    if(client.recv_from_serv() == false){
+        cout << "从服务器接收失败"<<endl;
+        return false;
+    }
+    NetPacket *phead = (NetPacket*)client.data_buffer;
+    if(phead -> Header .wOpcode == SEA_BOOKS_INFO){
+        cout << "服务器查找错误"<<endl;
+        return false;
+    }else if(phead -> Header.wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "没有这本书,请重试..."<<endl;
+        return false;
+    }
+    Json::Value book_recv;
+    Json::Reader reader;
+    string str(phead -> Data);
+    if(reader.parse(str,book_recv) < 0){
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    else{
+        print(book_recv);
+    }
+    bool non_stop= true;
+    while(non_stop){
+        string yes_or_no;
+        string of_course;
+        string publish_house;
+        cout << "是否修改出版社[yes/no]:"<<endl;
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout << "您选择的不是yes,修改出版社的程序即将退出"<<endl;
+            non_stop = false;
+            return false;
+        }
+        cout << "出入新的出版社名称:";
+        cin >> publish_house;
+        cout << "确认吗[yes/no]:";
+        cin >> of_course;
+        if(of_course != "yes") continue;
+        else{
+            book_recv["publish_house"] = publish_house.c_str();
+            string out = book_recv.toStyledString();
+            memcpy(client.data_buffer,out.c_str(),out.size());
+            if(client.send_to_serv(out.size(),CHAN_BOOKS_INFO) == false) {
+                cout << "更改的请求发送失败"<<endl;
+                return false;
+            }
+            if(client.recv_from_serv() == false){
+                cout << "接收来自服务器的请求失败"<<endl;
+                return false;
+            }
+            NetPacketHeader *pheadd = (NetPacketHeader*)client.data_buffer;
+            if(pheadd -> wOpcode == CHAN_BOOKS_INFO_YES) {
+                cout << "更改成功"<<endl;
+                non_stop = false;
+                return true;
+            }else{
+                cout << "更改失败"<<endl;
+                return false;
+            }
+        }
+    }
+}
 
-void Admin_menu(TCPClient &client)
+bool chan_author(TCPClient &client,Json::Value &book)//改变书籍作者
+{
+     fill_in_json(book);
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),SEA_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return false;
+    }
+    if(client.recv_from_serv() == false){
+        cout << "从服务器接收失败"<<endl;
+        return false;
+    }
+    NetPacket *phead = (NetPacket*)client.data_buffer;
+    if(phead -> Header .wOpcode == SEA_BOOKS_INFO){
+        cout << "服务器查找错误"<<endl;
+        return false;
+    }else if(phead -> Header.wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "没有这本书,请重试..."<<endl;
+        return false;
+    }
+    Json::Value book_recv;
+    Json::Reader reader;
+    string str(phead -> Data);
+    if(reader.parse(str,book_recv) < 0){
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    else{
+        print(book_recv);
+    }
+    bool non_stop= true;
+    while(non_stop){
+        string yes_or_no;
+        string of_course;
+        string author;
+        cout << "是否修改作者[yes/no]:"<<endl;
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout << "您选择的不是yes,修改作者的程序即将退出"<<endl;
+            non_stop = false;
+            return false;
+        }
+        cout << "出入新的作者名字:";
+        cin >> author;
+        cout << "确认吗[yes/no]:";
+        cin >> of_course;
+        if(of_course != "yes") continue;
+        else{
+            book_recv["author"] = author.c_str();
+            string out = book_recv.toStyledString();
+            memcpy(client.data_buffer,out.c_str(),out.size());
+            if(client.send_to_serv(out.size(),CHAN_BOOKS_INFO) == false) {
+                cout << "更改的请求发送失败"<<endl;
+                return false;
+            }
+            if(client.recv_from_serv() == false){
+                cout << "接收来自服务器的请求失败"<<endl;
+                return false;
+            }
+            NetPacketHeader *pheadd = (NetPacketHeader*)client.data_buffer;
+            if(pheadd -> wOpcode == CHAN_BOOKS_INFO_YES) {
+                cout << "更改成功"<<endl;
+                non_stop = false;
+                return true;
+            }else{
+                cout << "更改失败"<<endl;
+                return false;
+            }
+    
+        }
+    }
+}
+bool chan_count(TCPClient&client,Json::Value &book)//改变书籍库存函数
+{
+     fill_in_json(book);
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),SEA_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return false;
+    }
+    if(client.recv_from_serv() == false){
+        cout << "从服务器接收失败"<<endl;
+        return false;
+    }
+    NetPacket *phead = (NetPacket*)client.data_buffer;
+    if(phead -> Header .wOpcode == SEA_BOOKS_INFO){
+        cout << "服务器查找错误"<<endl;
+        return false;
+    }else if(phead -> Header.wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "没有这本书,请重试..."<<endl;
+        return false;
+    }
+    Json::Value book_recv;
+    Json::Reader reader;
+    string str(phead -> Data);
+    if(reader.parse(str,book_recv) < 0){
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    else{
+        print(book_recv);
+    }
+    bool non_stop= true;
+    while(non_stop){
+        string yes_or_no;
+        string of_course;
+        string count;
+        cout << "是否修改库存[yes/no]:";
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout << "您选择的不是yes,修改库存的程序即将退出"<<endl;
+            non_stop = false;
+            return false;
+        }
+        cout << "输入想改变的库存(+5:增加5本书/-5:减少5本书):";
+        cin >> count;
+        cout << "确认吗[yes/no]:";
+        cin >> of_course;
+        
+        if(of_course != "yes") continue;
+        else{
+            count = book_recv["count"].asString() + count;
+            book_recv["count"] = count.c_str();
+            string out = book_recv.toStyledString();
+            memcpy(client.data_buffer,out.c_str(),out.size());
+            if(client.send_to_serv(out.size(),CHAN_BOOKS_INFO) == false) {
+                cout << "更改的请求发送失败"<<endl;
+                return false;
+            }
+            if(client.recv_from_serv() == false){
+                cout << "接收来自服务器的请求失败"<<endl;
+                return false;
+            }
+            NetPacketHeader *pheadd = (NetPacketHeader*)client.data_buffer;
+            if(pheadd -> wOpcode == CHAN_BOOKS_INFO_YES) {
+                cout << "更改成功"<<endl;
+                non_stop = false;
+                return true;
+            }else{
+                cout << "更改失败"<<endl;
+                return false;
+            }
+    
+        }
+    }
+}
+bool chan_stat(TCPClient &client,Json:: Value &book) //改变书籍状态函数
+{
+       fill_in_json(book);
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),SEA_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return false;
+    }
+    if(client.recv_from_serv() == false){
+        cout << "从服务器接收失败"<<endl;
+        return false;
+    }
+    NetPacket *phead = (NetPacket*)client.data_buffer;
+    if(phead -> Header .wOpcode == SEA_BOOKS_INFO){
+        cout << "服务器查找错误"<<endl;
+        return false;
+    }else if(phead -> Header.wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "没有这本书,请重试..."<<endl;
+        return false;
+    }
+    Json::Value book_recv;
+    Json::Reader reader;
+    string str(phead -> Data);
+    if(reader.parse(str,book_recv) < 0){
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    else{
+        print(book_recv);
+    }
+    bool non_stop= true;
+    while(non_stop){
+        string yes_or_no;
+        string of_course;
+        string stat;
+        cout << "是否修改可借阅状态[yes/no]:";
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout << "您选择的不是yes,修改借阅状态的程序即将退出"<<endl;
+            non_stop = false;
+            return false;
+        }
+        cout << "输入借阅状态:";
+        cin >> stat;
+        cout << "确认吗[yes/no]:";
+        cin >> of_course;
+        if(of_course != "yes") continue;
+        else{
+            book_recv["stat"] = stat.c_str();
+            string out = book_recv.toStyledString();
+            memcpy(client.data_buffer,out.c_str(),out.size());
+            if(client.send_to_serv(out.size(),CHAN_BOOKS_INFO) == false) {
+                cout << "更改的请求发送失败"<<endl;
+                return false;
+            }
+            if(client.recv_from_serv() == false){
+                cout << "接收来自服务器的请求失败"<<endl;
+                return false;
+            }
+            NetPacketHeader *pheadd = (NetPacketHeader*)client.data_buffer;
+            if(pheadd -> wOpcode == CHAN_BOOKS_INFO_YES) {
+                cout << "更改成功"<<endl;
+                non_stop = false;
+                return true;
+            }else{
+                cout << "更改失败"<<endl;
+                return false;
+            }
+    
+        }
+    }
+}
+
+bool isbn_or_name(TCPClient &client) //改变书籍信息函数2
+{
+    Json::Value book;
+    int choi;
+    
+    cout << "\t\t1.输入ISBN更改书籍"<<endl;
+    cout << "\t\t2.输入书籍名称更改书籍"<<endl;
+    cout << "\t\t3.退出"<<endl;
+    cout << "请输入您的选择:";
+    cin >> choi;
+    
+    if(choi == 1){
+        cout << "请输入ISBN:";
+        string ISBN;
+        cin >> ISBN;
+        string nu("");
+        book["ISBN"] = ISBN.c_str();book["book_name"] = nu.c_str();
+    }
+    if(choi == 2){
+        cout << "请输入书籍名称";
+        string book_name;
+        cin>>book_name;
+        string nu("");
+        book["book_name"] = book_name.c_str();book["ISBN"] = nu.c_str();
+    }
+    if(choi == 3){
+        return false;
+    }
+ 
+    int chan_what;
+    do{
+        cout << "\t\t1.修改出版社"<<endl;
+        cout << "\t\t2.修改作者"<<endl;
+        cout << "\t\t3.修改数量"<<endl;
+        cout << "\t\t4.修改是否可借阅的状态"<<endl;
+        cout << "\t\t5.退出" << endl;
+        cout <<"请输入您的选择:";
+        cin >> chan_what;
+    }while((chan_what != 1) && (chan_what != 2) && (chan_what != 3) && (chan_what != 4) && (chan_what != 5));
+    if(chan_what == 1) chan_publish(client,book);
+    if(chan_what == 2) chan_author(client,book);
+    if(chan_what == 3) chan_count(client,book);
+    if(chan_what == 4) chan_stat(client,book);
+    return true;
+}
+
+bool chan_books_info(TCPClient &client) //改变书籍信息的函数1
+{
+    bool non_stop = true;
+    string yes_or_no;
+    while(non_stop){
+        system("clear");
+        cout << "是否开始更改书籍[yes/no]:";
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout <<"您所输入的不是yes,更改书籍功能已经退出"<<endl;
+            non_stop = false;
+            continue;
+        }
+        isbn_or_name(client);
+        cout << "按任意键继续..."<<endl;
+        getchar();
+        getchar();
+    }
+}
+bool sea_books_info(TCPClient &client){
+    Json::Value book;
+    Json::Value book_recv;
+    Json::Reader reader;
+    string nu("");
+    bool non_stop = true;
+    book["ISBN"] = nu.c_str();
+    book["book_name"] = nu.c_str();
+    fill_in_json(book);
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),SEA_BOOKS_ALL_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return false;
+    }
+    cout << "书籍信息如下:"<<endl;
+    cout <<"ISBN  书籍名称 出版社   作者   库存  可借阅状态 "<<endl;
+    do{
+        if(client.recv_from_serv() == false){
+            cout << "从客户端接受信息失败"<<endl;
+            return false;
+        }
+        NetPacket *phead = (NetPacket*)client.data_buffer;
+        if(phead ->Header. wOpcode == SEA_BOOKS_ALL_INFO_YES){
+            //当前接收正确
+            string str(phead -> Data);
+            if(reader.parse(str,book_recv) < 0){
+                cout << "json解析失败"<<endl;
+                return false;
+            }
+            else{
+                cout << "|"<<book_recv["ISBN"].asString() <<"\t|"
+                << book_recv["book_name"].asString() << "\t|"
+                << book_recv["publish_house"].asString() << "\t|"
+                << book_recv["author"].asString() << "\t|"
+                << book_recv["count"].asString() << "\t|"
+                << book_recv["stat"].asString() << endl;
+            }
+        }
+        else if(phead -> Header.wOpcode == SEA_BOOKS_ALL_INFO_NO){
+            //当前接收错误
+            cout << "读取错误,请稍后再试"<<endl;
+            return false;
+        }
+        else if(phead -> Header.wOpcode == SEA_BOOKS_ALL_INFO){
+            //读取完成
+            cout<< "已读取完全部数据"<<endl;
+            break;
+        }
+    }while(non_stop);
+}
+
+void Admin_menu(TCPClient &client) //管理员菜单
 {
     int choice;
     bool non_stop = true;
@@ -613,6 +1037,7 @@ void Admin_menu(TCPClient &client)
         cout << "\t\t3.更改图书"<< endl;
         cout << "\t\t4.搜索图书"<<endl;
         cout << "\t\t5.退出" << endl;
+        cout << "请输入您的选择:";
         cin >> choice;
 
         switch (choice)
@@ -621,7 +1046,7 @@ void Admin_menu(TCPClient &client)
             case 2:del_books_info(client); break;
             case 3:chan_books_info(client);break;
             case 4:sea_books_info(client);break;
-            case 5: {cout<<"Bye"<<endl;     non_stop = false ;break;}
+            case 5: {cout<<"Bye"<<endl;     non_stop = false ; exit(0);}
         }
         cout << "按任意见继续..."<< endl;
         getchar();

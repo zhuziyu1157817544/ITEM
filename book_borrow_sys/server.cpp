@@ -425,7 +425,10 @@ bool add_books_info(TCPServer &server,int conn_fd,char *recv_data)
     if(db.result && mysql_num_rows(db.result) == 0){
         //表示这个书以前没有
         sentence.clear();
+        /*
         sentence = "insert book_infor(ISBN,book_name,publish_house,author,count,stat) value(\"" + book["ISBN"].asString()+ "\","+"\"" + book["book_name"].asString()+"\","+"\"" + book["publish_house"].asString()+"\"," + "\""+book["author"].asString()+"\"," + "\"" + book["count"].asString() + "\"," + "\""+book["stat"].asString() + "\"" + ");";
+        */
+        sentence = "insert book_infor(ISBN,book_name,publish_house,author,count,stat) value(\"" + book["ISBN"].asString()+ "\","+"\"" + book["book_name"].asString()+"\","+"\"" + book["publish_house"].asString()+"\"," + "\""+book["author"].asString()+"\"," + book["count"].asString() + ",\"" + book["stat"].asString() + "\"" + ");";
     }else{
         //这本书本来就存在
         if(server.server_send(conn_fd,NULL,0,ADD_BOOKS_INFO_NO) == false){
@@ -458,7 +461,9 @@ bool del_books_info(TCPServer &server,int conn_fd,char*recv_data)
     string str(recv_data);
     if(reader.parse(str,book) < 0){
         cout << "json解析失败" << endl;
-        flag = 0;
+        server.server_send(conn_fd,NULL,0,DEL_BOOKS_INFO_NO);
+        //flag = 0;
+        return false;
     }
     MyDB db;
     if(db.initDB("localhost","root","548946","book_borrow_sys") == false){
@@ -514,8 +519,161 @@ bool del_books_info(TCPServer &server,int conn_fd,char*recv_data)
         }
     }
 }
+bool chan_books_info(TCPServer &server,int conn_fd,char *recv_data)
+{
+    cout << "现在服务器开始更改数据库"<<endl;
+    Json::Value book;
+    Json::Reader reader;
+    string str(recv_data);
+    if(reader.parse(str,book) < 0) {
+        server.server_send(conn_fd,NULL,0,CHAN_BOOKS_INFO_NO);
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    MyDB db;
+    if(db.initDB("localhost","root","548946","book_borrow_sys") == false){
+        cout <<"数据库连接失败"<<endl;
+        server.server_send(conn_fd,NULL,0,CHAN_BOOKS_INFO_NO);
+        return false;
+    }
+    string sentence = "update book_infor set publish_house = \"" + book["publish_house"].asString() + "\","+"author = \"" + book["author"].asString() + "\"," +  "count =  " + book["count"].asString()+ "," +"stat = \""+book["stat"].asString()+"\" where ISBN = \"" + book["ISBN"].asString() + "\";";
+    cout <<"sentence:"<< sentence << endl;
+    if(db.exeSQL(sentence) == false){
+        cout << "mysql语句执行失败"<<endl;
+        server.server_send(conn_fd,NULL,0,CHAN_BOOKS_INFO_NO);
+        return false;
+    }else{
+        cout << "数据更改成功"<<endl;
+        server.server_send(conn_fd,NULL,0,CHAN_BOOKS_INFO_YES);
+        return true;
+    }
+}
+bool sea_books_info(TCPServer &server,int conn_fd,char* recv_data)
+{
+    Json::Value book;
+    Json::Reader reader;
+    string str(recv_data);
+    if(reader.parse(str,book) < 0){
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO);
+        cout << "json解析失败"<<endl;
+        return false;
+    }
+    MyDB db;
+    if(db.initDB("localhost","root","548946","book_borrow_sys") == false){
+        cout << "数据库连接失败"<<endl;
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO);
+        return false;
+    }
+    if(book["ISBN"].asString() != ""){
+        //按照isbn搜索
+        string sentence = "select * from book_infor where ISBN = \"" + book["ISBN"].asString() + "\"";
+        if(db.exeSQL(sentence) == false){
+            cout <<"mysql语句出错"<<endl;
+            server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO);
+            return false;
+        }
+        if(db.result && mysql_num_rows(db.result) == 0){
+            //表示没有搜索到
+            server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO_NO);
+            return false;
+        }
+        else{
+            db.row = mysql_fetch_row(db.result);
+            book["ISBN"] = db.row[0];
+            book["book_name"] = db.row[1];
+            book["publish_house"] = db.row[2];
+            book["author"] = db.row[3];
+            book["count"] = db.row[4];
+            book["stat"] = db.row[5];
+            string out = book.toStyledString();
+            char buf[1000];
+            memcpy(buf,out.c_str(),out.size());
+            server.server_send(conn_fd,buf,out.size(),SEA_BOOKS_INFO_YES);
+            return true;
+        }
+    }
+    
+     if(book["book_name"].asString() != ""){
+        //按照book_name搜索
+        string sentence = "select * from book_infor where book_name = \"" + book["book_name"].asString() + "\"";
+        if(db.exeSQL(sentence) == false){
+            cout <<"mysql语句出错"<<endl;
+            server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO);
+            return false;
+        }
+        if(db.result && mysql_num_rows(db.result) == 0){
+            //表示没有搜索到
+            server.server_send(conn_fd,NULL,0,SEA_BOOKS_INFO_NO);
+            return false;
+        }
+        else{
+            db.row = mysql_fetch_row(db.result);
+            book["ISBN"] = db.row[0];
+            book["book_name"] = db.row[1];
+            book["publish_house"] = db.row[2];
+            book["author"] = db.row[3];
+            book["count"] = db.row[4];
+            book["stat"] = db.row[5];
+            string out = book.toStyledString();
+            char buf[1000];
+            memcpy(buf,out.c_str(),out.size());
+            server.server_send(conn_fd,buf,out.size(),SEA_BOOKS_INFO_YES);
+            return true;
+        }
+    }
+    //书籍的没有写
 
+}
 
+void Makeup(TCPServer &server,int conn_fd,MyDB &db,Json::Value &book)
+{
+    book["ISBN"] = db.row[0];
+    book["book_name"] = db.row[1];
+    book["publish_house"] = db.row[2];
+    book["author"] = db.row[3];
+    book["count"] = db.row[4];
+    book["stat"] = db.row[5];
+
+    char buf[1000];
+    string out = book.toStyledString();
+    memcpy(buf,out.c_str(),out.size());
+    if(server.server_send(conn_fd,buf,out.size(),SEA_BOOKS_ALL_INFO_YES) == false){
+        cout << "服务器发送数据失败"<<endl;
+        return ;
+    }
+
+}
+bool sea_books_all_info(TCPServer &server,int conn_fd,char*recv_data)
+{
+    MyDB db;
+    Json::Value book;
+    if(db.initDB("localhost","root","548946","book_borrow_sys") == false){
+        cout << "连接数据库失败"<<endl;
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_ALL_INFO_NO);
+        return false;
+    }
+    string sentence = "select * from book_infor;";
+    if(db.exeSQL(sentence) == false){
+        cout << "mysql语句出错"<<endl;
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_ALL_INFO_NO);
+        return false;
+    }
+    if(db.result){
+        int num_fields = mysql_num_fields(db.result);
+        int num_rows = mysql_num_rows(db.result);
+        for(int i = 0;i < num_rows;i++){
+            db.row = mysql_fetch_row(db.result);
+            Makeup (server,conn_fd,db,book);//转化并发送
+        }
+        //发送一个空的代表结束
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_ALL_INFO);
+        return true;
+    }else{
+        server.server_send(conn_fd,NULL,0,SEA_BOOKS_ALL_INFO_NO);
+        cout << "mysql没有读到数据"<<endl;
+        return false;
+    }
+}
 
 bool TCPServer::dealwithpacket(TCPServer &server,int conn_fd, char *recv_data,uint16_t wOpcode,int datasize)  //处理接收到的数据
 {
@@ -558,7 +716,24 @@ bool TCPServer::dealwithpacket(TCPServer &server,int conn_fd, char *recv_data,ui
             return false;
         }
     }
-
+    else if(wOpcode == SEA_BOOKS_INFO){
+        if(sea_books_info(server,conn_fd,recv_data) == false){
+            cout << "搜索失败" << endl;
+            return false;
+        }
+    }
+    else if(wOpcode == CHAN_BOOKS_INFO){
+        if(chan_books_info(server,conn_fd,recv_data) == false){
+            cout << "更改失败" << endl;
+            return false;
+        }
+    }
+    else if(wOpcode == SEA_BOOKS_ALL_INFO){
+        if(sea_books_all_info(server,conn_fd,recv_data) == false){
+            cout <<"管理员查询全部失败"<<endl;
+            return false;
+        }
+    }
 
     return true;
 

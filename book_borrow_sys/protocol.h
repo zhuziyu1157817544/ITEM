@@ -47,6 +47,9 @@ enum eNetOpcode
     SEA_BOOKS_INFO, //管理员搜索书籍信息
     SEA_BOOKS_INFO_YES,//管理员找到书籍信息
     SEA_BOOKS_INFO_NO,
+    SEA_BOOKS_ALL_INFO,//搜索全部
+    SEA_BOOKS_ALL_INFO_YES,//搜索全部成功
+    SEA_BOOKS_ALL_INFO_NO,//搜索全部失败
     BOR_BOOK,
     BOR_BOOK_YES,
     BOR_BOOK_NO,
