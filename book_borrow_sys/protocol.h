@@ -9,7 +9,6 @@
 #define _PROTOCOL_H
 
 #define NET_PACKET_DATA_SIZE 5000
-
 /// 网络数据包包头
 struct NetPacketHeader
 {
@@ -35,7 +34,28 @@ enum eNetOpcode
     LOGIN_NO,    //登录失败
     REGISTER_YES,  //注册成功
     REGISTER_NO,  //注册失败
-    PERSONAL_DATA  //查询个人信息
+    PERSONAL_DATA,//查询个人信息
+    ADD_BOOKS_INFO, //管理员添加书籍信息
+    ADD_BOOKS_INFO_YES,//添加成功
+    ADD_BOOKS_INFO_NO,//添加失败
+    DEL_BOOKS_INFO, //管理员删除书籍信息
+    DEL_BOOKS_INFO_YES,//删除成功
+    DEL_BOOKS_INFO_NO,//删除失败
+    CHAN_BOOKS_INFO,//管理员更改书籍信息
+    CHAN_BOOKS_INFO_YES,//更改成功
+    CHAN_BOOKS_INFO_NO,//更改失败
+    SEA_BOOKS_INFO, //管理员搜索书籍信息
+    SEA_BOOKS_INFO_YES,//管理员找到书籍信息
+    SEA_BOOKS_INFO_NO,
+    BOR_BOOK,
+    BOR_BOOK_YES,
+    BOR_BOOK_NO,
+    RET_BOOK,
+    RET_BOOK_YES,
+    RET_BOOK_NO,
+    SEA_BOOK,
+    SEA_BOOK_YES,
+    SEA_BOOK_NO
 };
 
 

@@ -12,6 +12,7 @@
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<sys/stat.h>
+#include<stdlib.h>
 #include<fcntl.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
@@ -192,7 +193,7 @@ bool TCPClient::recv_from_serv()   //从服务器接收数据
 bool inputpasswd(string &passwd);   //无回显输入密码
 void Login_Register(TCPClient client);    //登录注册函数
 void menu(TCPClient client);  //用户菜单函数
-void Admin_menu(TCPClient client); //管理员菜单函数
+void Admin_menu(TCPClient &client); //管理员菜单函数
 
 
 bool inputpasswd(string &passwd)   //无回显输入密码
@@ -395,26 +396,236 @@ void Personal_data(TCPClient client)
     getchar(); 
     menu(client);
 }
+bool add_books_info(TCPClient &client)
+{
+    bool non_stop = true;
+    string yes_or_no;
+    Json::Value book;
+    string ISBN,book_name,publish_house,author,count,stat;
 
-void Admin_menu(TCPClient client)
+    while(non_stop){
+        cout << endl;
+        cout << endl;
+        cout << "是否开始本次录入[yes/no]:";
+        cin >> yes_or_no;
+        if(yes_or_no != "yes"){
+            cout << "您输入的选项不是yes,已经退出上线图书功能" << endl;
+            non_stop = false;
+            continue;
+        }
+        cout << "请输入图书ISBN:";
+        cin >> ISBN;
+        cout << "请输入图书名称:";
+        cin >> book_name;
+        cout << "请输入图书出版社:";
+        cin >> publish_house;
+        cout << "请输入图书作者:";
+        cin >> author;
+        cout << "请输入图书数量:";
+        cin >> count;
+        do{
+            cout << "请输入图书是否可借阅[yes/no]:";
+            cin >> stat;
+        }while((stat != "yes")&& (stat != "no"));
+        
+        book["ISBN"] = ISBN.c_str();
+        book["book_name"] = book_name.c_str();
+        book["publish_house"] = publish_house.c_str();
+        book["author"] = author.c_str();
+        book["count"] = count.c_str();
+        book["stat"] = stat.c_str();
+
+        string out = book.toStyledString();
+        memcpy(client.data_buffer,out.c_str(),out.size());
+        if(client.send_to_serv(out.size(),ADD_BOOKS_INFO) == false){
+            cout << "发送数据失败!" << endl;
+            return false;
+        }
+        if(client.recv_from_serv() == false){
+             cout << "接收数据失败"<<endl;
+             return false;
+        }else{
+            //cout << "所接受的数据是:";
+            //cout << client.data_buffer << endl;
+            NetPacketHeader *phead = (NetPacketHeader*)client.data_buffer;
+            if(phead -> wOpcode == ADD_BOOKS_INFO_YES){
+                cout << "书籍添加成功" << endl;
+            }else{
+                cout << "书籍添加失败,原因可能是书籍在数据库中已存在" << endl;
+                continue;
+            }
+        }
+        cout << endl;
+    }
+    return true;
+}
+
+void del_isbn(TCPClient &client)
+{
+    
+    bool non_stop = true;
+    string temp_isbn1;
+    string temp_isbn2;
+    while(non_stop){
+        cout << "请输入ISBN"<<endl;
+        cin >> temp_isbn1;
+        cout << "请再次输入ISBN确认"<<endl;
+        cin >> temp_isbn2;
+        if(temp_isbn1 == temp_isbn2){
+            cout << "确认成功,正在删除..."<<endl;
+            break;
+        }
+        else{
+            cout << "两次输入不一致，请重新输入"<< endl;
+            continue;
+        }
+    }
+    Json:: Value book;
+    string nu("");
+    book["ISBN"] = temp_isbn1.c_str();
+    book["book_name"] = nu.c_str();
+    book["publish_house"] = nu.c_str();
+    book["author"] = nu.c_str();
+    book["count"] = nu.c_str();
+    book["stat"] = nu.c_str();
+
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),DEL_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        
+    }
+    if(client.recv_from_serv() == false){
+        cout << "接收服务器发来的消息失败"<<endl;
+    }
+    NetPacketHeader *phead = (NetPacketHeader*)client.data_buffer;
+    if(phead -> wOpcode == DEL_BOOKS_INFO_YES){
+        cout << "删除成功"<< endl;
+        return ;
+    }
+    if(phead -> wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "书籍不存在,没办法删除" << endl;
+        return ;
+    }
+    if(phead -> wOpcode == DEL_BOOKS_INFO_NO){
+        cout << "删除失败" << endl;
+        return ;
+    }
+    
+}
+void del_book_name(TCPClient &client)
+{
+    bool non_stop = true;
+    string temp_name1;
+    string temp_name2;
+    while(non_stop){
+        cout << "请输入书籍名称:";
+        cin >> temp_name1;
+        cout << "请再次输入书籍名称确认:";
+        cin >> temp_name2;
+        if(temp_name1 == temp_name2){
+            cout << "确认成功,正在删除"<<endl;
+            break;
+        }
+        else{
+            cout << "两次输入不一致,请重新输入"<<endl;
+            continue;
+        }
+    }
+    Json::Value book;
+    string nu("");
+    book["ISBN"] = nu.c_str();
+    book["book_name"] = temp_name1.c_str();
+    book["publish_house"] = nu.c_str();
+    book["author"] = nu.c_str();
+    book["count"] = nu.c_str();
+    book["stat"] = nu.c_str();
+
+    string out = book.toStyledString();
+    memcpy(client.data_buffer,out.c_str(),out.size());
+    if(client.send_to_serv(out.size(),DEL_BOOKS_INFO) == false){
+        cout << "发送数据失败"<<endl;
+        return ;
+    }
+    if(client.recv_from_serv() == false){
+        cout << "接收服务器发来的消息失败"<<endl;
+        return ;
+    }
+    NetPacketHeader *phead = (NetPacketHeader*)client.data_buffer;
+    if(phead -> wOpcode == DEL_BOOKS_INFO_YES){
+        cout << "删除成功"<<endl;
+        return ;
+    }
+    if(phead -> wOpcode == SEA_BOOKS_INFO_NO){
+        cout << "书籍不存在,没办法删除"<<endl;
+        return ;
+    }
+    if(phead -> wOpcode == DEL_BOOKS_INFO_NO){
+        cout << "删除失败"<<endl;
+        return ;
+    }
+
+}
+bool del_books_info(TCPClient &client){
+    bool non_stop = true;
+    string yes_or_no;
+    Json::Value book;
+    string ISBN,book_name,publish_house,author,count,stat;
+    while(non_stop){
+        cout << endl;
+        cout << endl;
+        cout << "是否开始删除程序[yes/no]:";
+        cin >> yes_or_no;
+        if(yes_or_no == "yes"){
+            int choi;
+            cout << "\t\t1.根据ISBN删除"<<endl;
+            cout << "\t\t2.根据书籍名称删除"<<endl;
+            //cout << "\t\t3.退出 "<< endl;
+            cin >> choi;
+            if((choi != 1) && (choi != 2) ){
+                cout << "输入有误";
+                continue;
+            }
+            switch(choi){
+                case 1:del_isbn(client);break;
+                case 2:del_book_name(client);break;
+                //case 3:cout << "退出"<< endl;            }
+            }
+        }else{
+            cout << "您选择的不是yes,现已退出删除程序"<<endl;
+            non_stop = false;
+        }
+    }
+}
+
+bool chan_books_info(TCPClient &client){}
+bool sea_books_info(TCPClient &client){}
+
+void Admin_menu(TCPClient &client)
 {
     int choice;
-    
-    cout<<"\t\t欢迎进入管理员功能界面:"<<endl;
-    cout<<"\t\t\t1.上线书籍"<<endl;
-    cout<<"\t\t\t2.下线书籍"<<endl;
-    cout<<"\t\t\t3.退出"<<endl;
-    cout<<"\n请输入选择序号:";
-
-    while (1) {
+    bool non_stop = true;
+    while (non_stop) {
+        system("clear");
+        cout << "\t\t欢迎进入管理员功能界面"<<endl;
+        cout << "\t\t1.上线图书"<< endl;
+        cout << "\t\t2.下线图书"<<endl;
+        cout << "\t\t3.更改图书"<< endl;
+        cout << "\t\t4.搜索图书"<<endl;
+        cout << "\t\t5.退出" << endl;
         cin >> choice;
 
         switch (choice)
         {
-            case 1:                        break;
-            case 2:                        break;
-            case 3: cout<<"Bye"<<endl;     exit(0);
+            case 1:add_books_info(client); break;
+            case 2:del_books_info(client); break;
+            case 3:chan_books_info(client);break;
+            case 4:sea_books_info(client);break;
+            case 5: {cout<<"Bye"<<endl;     non_stop = false ;break;}
         }
+        cout << "按任意见继续..."<< endl;
+        getchar();
+        getchar();
     }
 }
 
