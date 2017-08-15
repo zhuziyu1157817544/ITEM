@@ -401,7 +401,7 @@ bool add_books_info(TCPClient &client)//上架书籍
     bool non_stop = true;
     string yes_or_no;
     Json::Value book;
-    string ISBN,book_name,publish_house,author,count,stat;
+    string ISBN,book_name,publish_house,author,count,stat,introduce,taga,tagb;
 
     while(non_stop){
         cout << endl;
@@ -423,16 +423,26 @@ bool add_books_info(TCPClient &client)//上架书籍
         cin >> author;
         cout << "请输入图书数量:";
         cin >> count;
+        cout << "请输入图书简介:";
+        getchar();
+        getline(cin,introduce);
+        cout << "请输入图书一级标签:";
+        cin >> taga;
+        cout << "请输入图书二级标签:";
+        cin >> tagb;
         do{
             cout << "请输入图书是否可借阅[yes/no]:";
             cin >> stat;
         }while((stat != "yes")&& (stat != "no"));
-        
+
         book["ISBN"] = ISBN.c_str();
         book["book_name"] = book_name.c_str();
         book["publish_house"] = publish_house.c_str();
         book["author"] = author.c_str();
         book["count"] = count.c_str();
+        book["introduce"] = introduce.c_str();
+        book["taga"] = taga.c_str();
+        book["tagb"] = tagb.c_str();
         book["stat"] = stat.c_str();
 
         string out = book.toStyledString();
@@ -601,17 +611,24 @@ void  fill_in_json(Json::Value &book) //填book信息
     book["publish_house"] =nu.c_str();
     book["author"] = nu.c_str();
     book["count"] = nu.c_str();
+    book["introduce"]=nu.c_str();
+    book["taga"]=nu.c_str();
+    book["tagb"]=nu.c_str();
     book["stat"] = nu.c_str();
 }
 
 void print(Json::Value &book_recv) //打印信息
 {
     cout << "当前图书信息是:"<<endl;
-        cout << "ISBN:"<<book_recv["ISBN"].asString()<<endl;
-        cout << "书籍名称:"<<book_recv["book_name"].asString()<<endl;
-        cout << "出版社:"<< book_recv["publish_house"].asString()<<endl;
-        cout << "库存数量:"<<book_recv["count"].asString()<<endl;
-        cout << "是否可借阅:"<<book_recv["stat"].asString()<<endl;
+    cout << "ISBN:"<<book_recv["ISBN"].asString()<<endl;
+    cout << "书籍名称:"<<book_recv["book_name"].asString()<<endl;
+    cout << "出版社:"<< book_recv["publish_house"].asString()<<endl;
+    cout << "作者:"<<book_recv["author"].asString()<<endl;
+    cout << "库存数量:"<<book_recv["count"].asString()<<endl;
+    cout << "是否可借阅:"<<book_recv["stat"].asString()<<endl;
+    cout << "一级标签:"<<book_recv["taga"].asString()<<endl;
+    cout << "二级标签:"<<book_recv["tagb"].asString()<<endl;
+    cout << "简介:"<<book_recv["introduce"].asString()<<endl;
 }
 bool chan_publish(TCPClient&client,Json::Value &book) //改变书籍出版社
 {
@@ -989,7 +1006,7 @@ bool sea_books_info(TCPClient &client){
         return false;
     }
     cout << "书籍信息如下:"<<endl;
-    cout <<"ISBN  书籍名称 出版社   作者   库存  可借阅状态 "<<endl;
+    cout <<"ISBN  书籍名称 出版社   作者   库存  可借阅状态 一级标签 二级标签 简介"<<endl;
     do{
         if(client.recv_from_serv() == false){
             cout << "从客户端接受信息失败"<<endl;
@@ -1009,7 +1026,10 @@ bool sea_books_info(TCPClient &client){
                 << book_recv["publish_house"].asString() << "\t|"
                 << book_recv["author"].asString() << "\t|"
                 << book_recv["count"].asString() << "\t|"
-                << book_recv["stat"].asString() << endl;
+                << book_recv["stat"].asString() << "\t|"
+                << book_recv["taga"].asString()<< "\t|"
+                << book_recv["tagb"].asString() << "\t|"
+                << book_recv["introduce"].asString() << endl;
             }
         }
         else if(phead -> Header.wOpcode == SEA_BOOKS_ALL_INFO_NO){

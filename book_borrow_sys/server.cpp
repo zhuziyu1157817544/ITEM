@@ -428,7 +428,7 @@ bool add_books_info(TCPServer &server,int conn_fd,char *recv_data)
         /*
         sentence = "insert book_infor(ISBN,book_name,publish_house,author,count,stat) value(\"" + book["ISBN"].asString()+ "\","+"\"" + book["book_name"].asString()+"\","+"\"" + book["publish_house"].asString()+"\"," + "\""+book["author"].asString()+"\"," + "\"" + book["count"].asString() + "\"," + "\""+book["stat"].asString() + "\"" + ");";
         */
-        sentence = "insert book_infor(ISBN,book_name,publish_house,author,count,stat) value(\"" + book["ISBN"].asString()+ "\","+"\"" + book["book_name"].asString()+"\","+"\"" + book["publish_house"].asString()+"\"," + "\""+book["author"].asString()+"\"," + book["count"].asString() + ",\"" + book["stat"].asString() + "\"" + ");";
+        sentence = "insert book_infor(ISBN,book_name,publish_house,author,count,introduce,taga,tagb,stat) value(\"" + book["ISBN"].asString()+ "\","+"\"" + book["book_name"].asString()+"\","+"\"" + book["publish_house"].asString()+"\"," + "\""+book["author"].asString()+"\"," + book["count"].asString() + ",\"" +book["introduce"].asString()+"\",\""+book["taga"].asString()+"\",\"" + book["tagb"].asString()+"\",\""+ book["stat"].asString() + "\"" + ");";
     }else{
         //这本书本来就存在
         if(server.server_send(conn_fd,NULL,0,ADD_BOOKS_INFO_NO) == false){
@@ -436,6 +436,7 @@ bool add_books_info(TCPServer &server,int conn_fd,char *recv_data)
         }
         flag = 0;
     }
+    cout << "add book:\n"<<sentence<<endl;
     if(db.exeSQL(sentence) == false){
         cout << "执行sql语句失败" << endl;
         flag = 0;
@@ -584,7 +585,10 @@ bool sea_books_info(TCPServer &server,int conn_fd,char* recv_data)
             book["publish_house"] = db.row[2];
             book["author"] = db.row[3];
             book["count"] = db.row[4];
-            book["stat"] = db.row[5];
+            book["stat"] = db.row[8];
+            book["taga"] = db.row[6];
+            book["tagb"] = db.row[7];
+            book["introduce"]=db.row[5];
             string out = book.toStyledString();
             char buf[1000];
             memcpy(buf,out.c_str(),out.size());
@@ -613,7 +617,10 @@ bool sea_books_info(TCPServer &server,int conn_fd,char* recv_data)
             book["publish_house"] = db.row[2];
             book["author"] = db.row[3];
             book["count"] = db.row[4];
-            book["stat"] = db.row[5];
+            book["stat"] = db.row[8];
+            book["taga"]=db.row[6];
+            book["tagb"]=db.row[7];
+            book["introduce"]=db.row[5];
             string out = book.toStyledString();
             char buf[1000];
             memcpy(buf,out.c_str(),out.size());
@@ -632,7 +639,10 @@ void Makeup(TCPServer &server,int conn_fd,MyDB &db,Json::Value &book)
     book["publish_house"] = db.row[2];
     book["author"] = db.row[3];
     book["count"] = db.row[4];
-    book["stat"] = db.row[5];
+    book["stat"] = db.row[8];
+    book["taga"] = db.row[6];
+    book["tagb"] = db.row[7];
+    book["introduce"] = db.row[5];
 
     char buf[1000];
     string out = book.toStyledString();
